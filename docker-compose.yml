@@ -13,7 +13,7 @@ services:
     volumes:
       - /gateway/postgresql/data:/var/lib/postgresql/data
     networks:
-      - kong-net
+      - default
     ports:
       - 5432:5432
   
@@ -32,18 +32,21 @@ services:
     command: "kong migrations bootstrap"
     links:
       - kong-database
+    networks:
+      - default
 
   kong:
     depends_on:
       - kong-database
+      - kong-migration
     image: kong:2.1.2
     container_name: kong
     restart: always
     environment:
       - KONG_DATABASE=postgres
+      - KONG_PG_HOST=kong-database
       - KONG_PG_USER=kong
       - KONG_PG_PASSWORD=kong
-      - KONG_PG_HOST=kong-database
       - KONG_CASSANDRA_CONTACT_POINTS=kong-database
       - KONG_PROXY_ACCESS_LOG=/dev/stdout
       - KONG_ADMIN_ACCESS_LOG=/dev/stdout
@@ -53,7 +56,7 @@ services:
     volumes:
       - kong-volume
     networks:
-      - kong-net
+      - default
     ports:
       - 8000:8000
       - 8443:8443
@@ -68,7 +71,7 @@ services:
     restart: on-failure
     command: "-c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db"
     networks:
-      - kong-net
+      - default
     links:
       - kong-database
 
@@ -88,7 +91,7 @@ services:
       - NODE_ENV=production
       - TOKEN_SECRET=km1GUr4RkcQD7DewhJPNXrCuZwcKmqjb
     networks:
-      - kong-net
+      - default
     ports:
       - 1337:1337
 
@@ -150,8 +153,9 @@ services:
       - 9100:9100
 
 networks:
-  kong-net:
-    driver: bridge
+  default:
+    external:
+      name: kong-net
 
 volumes:
   kong-volume:
